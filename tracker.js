@@ -249,7 +249,10 @@ const sendAlog = async (data) => {
       redirect: "follow",
     };
 
-    fetch("http://localhost:9000/node/pixel/trackevents", requestOptions)
+    fetch(
+      "https://devserver.medront.com/node/pixel/trackevents",
+      requestOptions
+    )
       .then((response) => response.text())
       .then((result) => console.log("@sendAlog", result))
       .catch((error) => console.error("@sendAlog", error));
@@ -259,10 +262,9 @@ const sendAlog = async (data) => {
 };
 
 window.onload = function () {
-  //   Cookies.set("visits", 1, { expires: 9000 });
   setClientId();
   setSessionId();
-  getIPInfo();
+  // getIPInfo();
   //   console.log(
   //     urlFixup(documentAlias.domain, windowAlias.location.href, getReferrer()),
   //     getHostName(windowAlias.location.href)
@@ -273,7 +275,7 @@ window.onload = function () {
     windowAlias.location.href,
     getReferrer()
   );
-  //   console.log(event, isMobile());
+
   let event = {
     event: "Page Loaded",
     pixel_id: getSyncScriptParams(),
@@ -292,6 +294,7 @@ window.onload = function () {
     domainAlias: domainFixup(locationArray[0]),
     locationArray: locationArray,
   };
+  console.log(event, "Page Loaded");
   // console.log(event);
   sendAlog(event);
 };
