@@ -422,9 +422,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       if (e.target.getAttribute("onclick")) {
-        console.log("CLICKED", e.target);
+        // console.log("CLICKED", e.target);
         if (e.target.getAttribute("onclick")) {
-          console.log("CLICKED", e.target);
+          // console.log("CLICKED", e.target);
           console.log("clicked", {
             event: "clicked",
             element: "CUSTOM CLICK ELE",
@@ -447,9 +447,9 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
       if (!e.target.getAttribute("onclick")) {
-        console.log("CLICKED", e.target);
+        // console.log("CLICKED", e.target);
         if (e.target.parentElement.getAttribute("onclick")) {
-          console.log("CLICKED", e.target);
+          // console.log("CLICKED", e.target);
           console.log("clicked", {
             event: "clicked",
             element: "CUSTOM CLICK ELE",
