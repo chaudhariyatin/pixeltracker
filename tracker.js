@@ -434,6 +434,15 @@ document.addEventListener("DOMContentLoaded", function () {
               : e.target.innerHTML,
             pixelId: pixelId,
           });
+          sendAlog({
+            event: "clicked",
+            element: "CUSTOM CLICK ELE",
+            date: new Date().valueOf(),
+            action: e.target.innerText
+              ? e.target.innerText
+              : e.target.innerHTML,
+            pixelId: pixelId,
+          });
         }
         return;
       }
@@ -442,6 +451,15 @@ document.addEventListener("DOMContentLoaded", function () {
         if (e.target.parentElement.getAttribute("onclick")) {
           console.log("CLICKED", e.target);
           console.log("clicked", {
+            event: "clicked",
+            element: "CUSTOM CLICK ELE",
+            date: new Date().valueOf(),
+            action: e.target.innerText
+              ? e.target.innerText
+              : e.target.innerHTML,
+            pixelId: pixelId,
+          });
+          sendAlog({
             event: "clicked",
             element: "CUSTOM CLICK ELE",
             date: new Date().valueOf(),
