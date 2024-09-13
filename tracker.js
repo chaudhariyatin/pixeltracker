@@ -299,208 +299,216 @@ window.onload = function () {
   sendAlog(event);
 };
 
-//url events
-window.navigation.addEventListener("navigate", (e) => {
-  let url = new URL(e.destination.url);
-  let pixelId = getSyncScriptParams();
-  console.log(
-    "location changed!",
-    e.target,
-    {
+document.addEventListener("DOMContentLoaded", function () {
+  window.navigation.addEventListener("navigate", (e) => {
+    let url = new URL(e.destination.url);
+    let pixelId = getSyncScriptParams();
+    console.log(
+      "location changed!",
+      e.target,
+      {
+        event: "url changes",
+        date: new Date().valueOf(),
+        url: url.href,
+        pathname: url.pathname,
+        pixelId: pixelId,
+      },
+      url
+    );
+
+    sendAlog({
       event: "url changes",
       date: new Date().valueOf(),
       url: url.href,
       pathname: url.pathname,
-      pixelId: pixelId,
-    },
-    url
-  );
+      pixel_id: getSyncScriptParams(),
+      visitorId: client_id,
+      session_id,
+    });
+  });
 
-  sendAlog({
-    event: "url changes",
-    date: new Date().valueOf(),
-    url: url.href,
-    pathname: url.pathname,
-    pixel_id: getSyncScriptParams(),
-    visitorId: client_id,
-    session_id,
+  //scroll event
+  window.addEventListener("scroll", function () {
+    try {
+      const scrollTop =
+        window.pageYOffset || document.documentElement.scrollTop;
+      const documentHeight =
+        document.documentElement.scrollHeight -
+        document.documentElement.clientHeight;
+      const scrollPercentage = (scrollTop / documentHeight) * 100;
+      let pixelId = getSyncScriptParams();
+
+      if (
+        Math.round(scrollPercentage) === 25 ||
+        Math.round(scrollPercentage) === 50 ||
+        Math.round(scrollPercentage) === 75 ||
+        Math.round(scrollPercentage) === 100
+      ) {
+        console.log("Scroll Percentage:", {
+          event: "Page Scroll",
+          percentage: Math.round(scrollPercentage),
+          date: new Date().valueOf(),
+          pixelId: pixelId,
+        });
+
+        sendAlog({
+          event: "Page Scroll",
+          percentage: Math.round(scrollPercentage),
+          date: new Date().valueOf(),
+          pixel_id: getSyncScriptParams(),
+          visitorId: client_id,
+          session_id,
+        });
+      }
+    } catch (error) {
+      console.log("scroll", error);
+    }
+  });
+
+  //click event detect button click and link click
+
+  document.addEventListener("click", (e) => {
+    try {
+      // console.log("Button clicked:", e.target.innerText, e.target);
+      let pixelId = getSyncScriptParams();
+
+      if (e.target.tagName === "BUTTON") {
+        // Handle the button click event here
+        // console.log('Button clicked:', e.target.innerText);
+        console.log("clicked", {
+          event: "clicked",
+          element: "BUTTON",
+          date: new Date().valueOf(),
+          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
+          pixelId: pixelId,
+        });
+
+        sendAlog({
+          event: "clicked",
+          element: "BUTTON",
+          date: new Date().valueOf(),
+          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
+          pixel_id: getSyncScriptParams(),
+          visitorId: client_id,
+          session_id,
+        });
+
+        return;
+      }
+
+      if (e.target.tagName.toUpperCase() === "A") {
+        // Handle the link click event here
+        // console.log("link clicked:", e.target.href);
+        console.log("clicked", {
+          event: "clicked",
+          element: "LINK",
+          link: e.target.href,
+          date: new Date().valueOf(),
+          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
+          pixelId: pixelId,
+        });
+
+        sendAlog({
+          event: "clicked",
+          element: "LINK",
+          link: e.target.href,
+          date: new Date().valueOf(),
+          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
+          pixel_id: getSyncScriptParams(),
+          visitorId: client_id,
+          session_id,
+        });
+        return;
+      }
+
+      if (e.target.getAttribute("onclick")) {
+        console.log("CLICKED", e.target);
+        if (e.target.getAttribute("onclick")) {
+          console.log("CLICKED", e.target);
+          console.log("clicked", {
+            event: "clicked",
+            element: "CUSTOM CLICK ELE",
+            date: new Date().valueOf(),
+            action: e.target.innerText
+              ? e.target.innerText
+              : e.target.innerHTML,
+            pixelId: pixelId,
+          });
+        }
+        return;
+      }
+      if (!e.target.getAttribute("onclick")) {
+        console.log("CLICKED", e.target);
+        if (e.target.parentElement.getAttribute("onclick")) {
+          console.log("CLICKED", e.target);
+          console.log("clicked", {
+            event: "clicked",
+            element: "CUSTOM CLICK ELE",
+            date: new Date().valueOf(),
+            action: e.target.innerText
+              ? e.target.innerText
+              : e.target.innerHTML,
+            pixelId: pixelId,
+          });
+        }
+        return;
+      }
+    } catch (error) {
+      console.log("click event", error);
+    }
+  });
+
+  //form submission
+  document.addEventListener("submit", function (e) {
+    try {
+      e.preventDefault(); //stop page from rerender
+      let pixelId = getSyncScriptParams();
+      if (e.target) {
+        const data = new FormData(e.target);
+        let formData = [...data.entries()];
+        // let val = e.target.getAttribute('shippingForm')
+        // listAttributes()
+        // let val = e.target.dataset
+        // console.log("@@@@", e.target[0].value)
+
+        let packet = {};
+        console.log("SUBMIT**************", {
+          event: "submit",
+          date: new Date().valueOf(),
+          formData: formData.length !== 0 ? formData : packet,
+          pixelId: pixelId,
+        });
+        for (let i = 0; i < e.target.length; i++) {
+          let ele = e.target[i];
+          // console.log(`${ele.name ? ele.name : ele.placeholder}: ${ele.value}\n`);
+          packet[
+            ele.name ? ele.name : ele.placeholder ? ele.placeholder : makeid(6)
+          ] = ele.value ? ele.value : null;
+        }
+
+        console.log("SUBMIT**************", {
+          event: "submit",
+          date: new Date().valueOf(),
+          formData: formData.length !== 0 ? formData : packet,
+          pixelId: pixelId,
+        });
+
+        sendAlog({
+          event: "submit",
+          date: new Date().valueOf(),
+          formData: formData.length !== 0 ? formData : packet,
+          pixel_id: getSyncScriptParams(),
+          visitorId: client_id,
+          session_id,
+        });
+      }
+    } catch (error) {
+      console.log("form submission event", error);
+    }
   });
 });
 
-//scroll event
-window.addEventListener("scroll", function () {
-  try {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const documentHeight =
-      document.documentElement.scrollHeight -
-      document.documentElement.clientHeight;
-    const scrollPercentage = (scrollTop / documentHeight) * 100;
-    let pixelId = getSyncScriptParams();
-
-    if (
-      Math.round(scrollPercentage) === 25 ||
-      Math.round(scrollPercentage) === 50 ||
-      Math.round(scrollPercentage) === 75 ||
-      Math.round(scrollPercentage) === 100
-    ) {
-      console.log("Scroll Percentage:", {
-        event: "Page Scroll",
-        percentage: Math.round(scrollPercentage),
-        date: new Date().valueOf(),
-        pixelId: pixelId,
-      });
-
-      sendAlog({
-        event: "Page Scroll",
-        percentage: Math.round(scrollPercentage),
-        date: new Date().valueOf(),
-        pixel_id: getSyncScriptParams(),
-        visitorId: client_id,
-        session_id,
-      });
-    }
-  } catch (error) {
-    console.log("scroll", error);
-  }
-});
-
-//click event detect button click and link click
-
-document.addEventListener("click", (e) => {
-  try {
-    // console.log("Button clicked:", e.target.innerText, e.target);
-    let pixelId = getSyncScriptParams();
-
-    if (e.target.tagName === "BUTTON") {
-      // Handle the button click event here
-      // console.log('Button clicked:', e.target.innerText);
-      console.log("clicked", {
-        event: "clicked",
-        element: "BUTTON",
-        date: new Date().valueOf(),
-        action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
-        pixelId: pixelId,
-      });
-
-      sendAlog({
-        event: "clicked",
-        element: "BUTTON",
-        date: new Date().valueOf(),
-        action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
-        pixel_id: getSyncScriptParams(),
-        visitorId: client_id,
-        session_id,
-      });
-
-      return;
-    }
-
-    if (e.target.tagName.toUpperCase() === "A") {
-      // Handle the link click event here
-      // console.log("link clicked:", e.target.href);
-      console.log("clicked", {
-        event: "clicked",
-        element: "LINK",
-        link: e.target.href,
-        date: new Date().valueOf(),
-        action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
-        pixelId: pixelId,
-      });
-
-      sendAlog({
-        event: "clicked",
-        element: "LINK",
-        link: e.target.href,
-        date: new Date().valueOf(),
-        action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
-        pixel_id: getSyncScriptParams(),
-        visitorId: client_id,
-        session_id,
-      });
-      return;
-    }
-
-    if (e.target.getAttribute("onclick")) {
-      console.log("CLICKED", e.target);
-      if (e.target.getAttribute("onclick")) {
-        console.log("CLICKED", e.target);
-        console.log("clicked", {
-          event: "clicked",
-          element: "CUSTOM CLICK ELE",
-          date: new Date().valueOf(),
-          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
-          pixelId: pixelId,
-        });
-      }
-      return;
-    }
-    if (!e.target.getAttribute("onclick")) {
-      console.log("CLICKED", e.target);
-      if (e.target.parentElement.getAttribute("onclick")) {
-        console.log("CLICKED", e.target);
-        console.log("clicked", {
-          event: "clicked",
-          element: "CUSTOM CLICK ELE",
-          date: new Date().valueOf(),
-          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
-          pixelId: pixelId,
-        });
-      }
-      return;
-    }
-  } catch (error) {
-    console.log("click event", error);
-  }
-});
-
-//form submission
-document.addEventListener("submit", function (e) {
-  try {
-    e.preventDefault(); //stop page from rerender
-    let pixelId = getSyncScriptParams();
-    if (e.target) {
-      const data = new FormData(e.target);
-      let formData = [...data.entries()];
-      // let val = e.target.getAttribute('shippingForm')
-      // listAttributes()
-      // let val = e.target.dataset
-      // console.log("@@@@", e.target[0].value)
-
-      let packet = {};
-      console.log("SUBMIT**************", {
-        event: "submit",
-        date: new Date().valueOf(),
-        formData: formData.length !== 0 ? formData : packet,
-        pixelId: pixelId,
-      });
-      for (let i = 0; i < e.target.length; i++) {
-        let ele = e.target[i];
-        // console.log(`${ele.name ? ele.name : ele.placeholder}: ${ele.value}\n`);
-        packet[
-          ele.name ? ele.name : ele.placeholder ? ele.placeholder : makeid(6)
-        ] = ele.value ? ele.value : null;
-      }
-
-      console.log("SUBMIT**************", {
-        event: "submit",
-        date: new Date().valueOf(),
-        formData: formData.length !== 0 ? formData : packet,
-        pixelId: pixelId,
-      });
-
-      sendAlog({
-        event: "submit",
-        date: new Date().valueOf(),
-        formData: formData.length !== 0 ? formData : packet,
-        pixel_id: getSyncScriptParams(),
-        visitorId: client_id,
-        session_id,
-      });
-    }
-  } catch (error) {
-    console.log("form submission event", error);
-  }
-});
+//url events
 
 function makeid(length) {
   let result = "";
