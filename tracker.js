@@ -283,8 +283,8 @@ window.onload = function () {
     session_id,
     date: new Date().valueOf(),
     device: {
-      brands: navigatorAlias.userAgentData.brands,
-      platform: navigatorAlias.userAgentData.platform,
+      brands: navigatorAlias ? navigatorAlias.userAgentData.brands : null,
+      platform: navigatorAlias ? navigatorAlias.userAgentData.platform : null,
       deviceDimensions: getDeviceDimensions(),
       device: isMobile() ? "Mobile" : "Desktop",
     },
@@ -308,7 +308,7 @@ window.navigation.addEventListener("navigate", (e) => {
     e.target,
     {
       event: "url changes",
-      timeStamp: new Date().valueOf(),
+      date: new Date().valueOf(),
       url: url.href,
       pathname: url.pathname,
       pixelId: pixelId,
@@ -318,7 +318,7 @@ window.navigation.addEventListener("navigate", (e) => {
 
   sendAlog({
     event: "url changes",
-    timeStamp: new Date().valueOf(),
+    date: new Date().valueOf(),
     url: url.href,
     pathname: url.pathname,
     pixel_id: getSyncScriptParams(),
@@ -346,14 +346,14 @@ window.addEventListener("scroll", function () {
       console.log("Scroll Percentage:", {
         event: "Page Scroll",
         percentage: Math.round(scrollPercentage),
-        timeStamp: new Date().valueOf(),
+        date: new Date().valueOf(),
         pixelId: pixelId,
       });
 
       sendAlog({
         event: "Page Scroll",
         percentage: Math.round(scrollPercentage),
-        timeStamp: new Date().valueOf(),
+        date: new Date().valueOf(),
         pixel_id: getSyncScriptParams(),
         visitorId: client_id,
         session_id,
@@ -376,7 +376,7 @@ document.addEventListener("click", (e) => {
       console.log("clicked", {
         event: "clicked",
         element: "BUTTON",
-        timeStamp: new Date().valueOf(),
+        date: new Date().valueOf(),
         action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
         pixelId: pixelId,
       });
@@ -384,7 +384,7 @@ document.addEventListener("click", (e) => {
       sendAlog({
         event: "clicked",
         element: "BUTTON",
-        timeStamp: new Date().valueOf(),
+        date: new Date().valueOf(),
         action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
         pixel_id: getSyncScriptParams(),
         visitorId: client_id,
@@ -394,11 +394,12 @@ document.addEventListener("click", (e) => {
 
     if (e.target.tagName.toUpperCase() === "A") {
       // Handle the link click event here
-      // console.log('link clicked:', e.target);
+      // console.log("link clicked:", e.target.href);
       console.log("clicked", {
         event: "clicked",
         element: "LINK",
-        timeStamp: new Date().valueOf(),
+        link: e.target.href,
+        date: new Date().valueOf(),
         action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
         pixelId: pixelId,
       });
@@ -406,7 +407,8 @@ document.addEventListener("click", (e) => {
       sendAlog({
         event: "clicked",
         element: "LINK",
-        timeStamp: new Date().valueOf(),
+        link: e.target.href,
+        date: new Date().valueOf(),
         action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
         pixel_id: getSyncScriptParams(),
         visitorId: client_id,
@@ -434,13 +436,13 @@ document.addEventListener("submit", function (e) {
       let packet = {};
       console.log("SUBMIT**************", {
         event: "submit",
-        timeStamp: new Date().valueOf(),
+        date: new Date().valueOf(),
         formData: formData.length !== 0 ? formData : packet,
         pixelId: pixelId,
       });
       for (let i = 0; i < e.target.length; i++) {
         let ele = e.target[i];
-        console.log(`${ele.name ? ele.name : ele.placeholder}: ${ele.value}\n`);
+        // console.log(`${ele.name ? ele.name : ele.placeholder}: ${ele.value}\n`);
         packet[
           ele.name ? ele.name : ele.placeholder ? ele.placeholder : makeid(6)
         ] = ele.value ? ele.value : null;
@@ -448,14 +450,14 @@ document.addEventListener("submit", function (e) {
 
       console.log("SUBMIT**************", {
         event: "submit",
-        timeStamp: new Date().valueOf(),
+        date: new Date().valueOf(),
         formData: formData.length !== 0 ? formData : packet,
         pixelId: pixelId,
       });
 
       sendAlog({
         event: "submit",
-        timeStamp: new Date().valueOf(),
+        date: new Date().valueOf(),
         formData: formData.length !== 0 ? formData : packet,
         pixel_id: getSyncScriptParams(),
         visitorId: client_id,
