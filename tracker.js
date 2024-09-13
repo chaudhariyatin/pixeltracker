@@ -370,6 +370,7 @@ document.addEventListener("click", (e) => {
   try {
     // console.log("Button clicked:", e.target.innerText, e.target);
     let pixelId = getSyncScriptParams();
+
     if (e.target.tagName === "BUTTON") {
       // Handle the button click event here
       // console.log('Button clicked:', e.target.innerText);
@@ -390,6 +391,8 @@ document.addEventListener("click", (e) => {
         visitorId: client_id,
         session_id,
       });
+
+      return;
     }
 
     if (e.target.tagName.toUpperCase() === "A") {
@@ -414,6 +417,36 @@ document.addEventListener("click", (e) => {
         visitorId: client_id,
         session_id,
       });
+      return;
+    }
+
+    if (e.target.getAttribute("onclick")) {
+      console.log("CLICKED", e.target);
+      if (e.target.getAttribute("onclick")) {
+        console.log("CLICKED", e.target);
+        console.log("clicked", {
+          event: "clicked",
+          element: "CUSTOM CLICK ELE",
+          date: new Date().valueOf(),
+          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
+          pixelId: pixelId,
+        });
+      }
+      return;
+    }
+    if (!e.target.getAttribute("onclick")) {
+      console.log("CLICKED", e.target);
+      if (e.target.parentElement.getAttribute("onclick")) {
+        console.log("CLICKED", e.target);
+        console.log("clicked", {
+          event: "clicked",
+          element: "CUSTOM CLICK ELE",
+          date: new Date().valueOf(),
+          action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
+          pixelId: pixelId,
+        });
+      }
+      return;
     }
   } catch (error) {
     console.log("click event", error);
