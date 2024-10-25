@@ -1,3 +1,6 @@
+// change version code before uplaoding update
+// version  =>> 1
+
 var ip,
   visitorId,
   configBrowserFeatureDetection = true,
@@ -5,6 +8,7 @@ var ip,
   windowAlias = window,
   documentAlias = document,
   screenAlias = window.screen,
+  locationAlias = window.location,
   // Browser client hints
   clientHints = {},
   clientHintsRequestQueue = [],
@@ -22,6 +26,23 @@ var ip,
   //user params
   client_id,
   session_id;
+var inputsArray = [];
+var inputOject = {};
+
+const getFingerprint = () => {
+  const fpPromise = import("https://openfpcdn.io/fingerprintjs/v4").then(
+    (FingerprintJS) => FingerprintJS.load()
+  );
+
+  // Get the visitor identifier when you need it.
+  fpPromise
+    .then((fp) => fp.get())
+    .then((result) => {
+      // This is the visitor identifier:
+      const visitorId = result.visitorId;
+      console.log(visitorId, result);
+    });
+};
 
 const setSessionId = () => {
   try {
@@ -249,10 +270,7 @@ const sendAlog = async (data) => {
       redirect: "follow",
     };
 
-    fetch(
-      "https://devserver.medront.com/node/pixel/trackevents",
-      requestOptions
-    )
+    fetch("http://localhost:9000/node/pixel/trackevents", requestOptions)
       .then((response) => response.text())
       .then((result) => console.log("@sendAlog", result))
       .catch((error) => console.error("@sendAlog", error));
@@ -261,14 +279,80 @@ const sendAlog = async (data) => {
   }
 };
 
+const verifyInstall = async () => {
+  try {
+    const params = new URL(locationAlias.href).searchParams;
+    const pixel_install = params.get("pixel_install");
+    const pixelId = params.get("pixelId");
+    const token = params.get("token");
+
+    if (!pixel_install && pixelId !== getSyncScriptParams()) return;
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+    myHeaders.append("Authorization", `${token}`);
+
+    const raw = JSON.stringify({
+      pixelId: getSyncScriptParams(),
+      url: locationAlias.href,
+      search: locationAlias.search,
+      referrer: getReferrer(),
+      pixel_install: pixel_install,
+    });
+
+    const requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    };
+
+    const response = await fetch(
+      // "https://devserver.medront.com/node/pixel/trackevents",
+      "http://localhost:9000/node/pixelsetup/verifypixelsetup",
+      requestOptions
+    );
+
+    const resData = await response.json();
+
+    console.log("verification", resData);
+  } catch (error) {
+    console.log("verifyInstall", error);
+  }
+};
+
+//inputs
+const addInputListeners = () => {
+  let allInputsOnPageArray = document.getElementsByTagName("input");
+  // console.log("@@@@@@@@@@@@", allInputsOnPageArray);
+  for (let i = 0; i < allInputsOnPageArray.length; i++) {
+    allInputsOnPageArray[i].addEventListener("input", (e) => {
+      let packet = {};
+      inputOject[
+        e.target.name
+          ? e.target.name
+          : e.target.placeholder
+          ? e.target.placeholder
+          : makeid(6)
+      ] = e.target.value ? e.target.value : null;
+      packet[
+        e.target.name
+          ? e.target.name
+          : e.target.placeholder
+          ? e.target.placeholder
+          : makeid(6)
+      ] = e.target.value ? e.target.value : null;
+      inputsArray.push(packet);
+      //   console.log("@@@@@@@@@@@@", inputsArray);
+    });
+  }
+};
+
 window.onload = function () {
   setClientId();
   setSessionId();
-  // getIPInfo();
-  //   console.log(
-  //     urlFixup(documentAlias.domain, windowAlias.location.href, getReferrer()),
-  //     getHostName(windowAlias.location.href)
-  //   );
+  getFingerprint();
+  //verify pixel  install
+  verifyInstall();
 
   let locationArray = urlFixup(
     documentAlias.domain,
@@ -279,12 +363,18 @@ window.onload = function () {
   let event = {
     event: "Page Loaded",
     pixel_id: getSyncScriptParams(),
-    visitorId: client_id,
+    visitor_id: client_id,
     session_id,
     date: new Date().valueOf(),
     device: {
-      brands: navigatorAlias ? navigatorAlias.userAgentData.brands : null,
-      platform: navigatorAlias ? navigatorAlias.userAgentData.platform : null,
+      brands:
+        navigatorAlias.userAgentData && navigatorAlias
+          ? navigatorAlias.userAgentData.brands
+          : navigatorAlias.appCodeName,
+      platform:
+        navigatorAlias.userAgentData && navigatorAlias
+          ? navigatorAlias.userAgentData.platform
+          : navigatorAlias.platform,
       deviceDimensions: getDeviceDimensions(),
       device: isMobile() ? "Mobile" : "Desktop",
     },
@@ -292,40 +382,189 @@ window.onload = function () {
     urlParams: getUrlParameter(),
     hostName: getHostName(),
     domainAlias: domainFixup(locationArray[0]),
-    locationArray: locationArray,
+    allUrlParams: {
+      hash: locationAlias.hash,
+      host: locationAlias.host,
+      hostname: locationAlias.hostname,
+      url: locationAlias.href,
+      origin: locationAlias.origin,
+      pathname: locationAlias.pathname,
+      protocol: locationAlias.protocol,
+      search: locationAlias.search,
+      referrer: getReferrer(),
+    },
   };
   console.log(event, "Page Loaded");
+
   // console.log(event);
   sendAlog(event);
+  addInputListeners();
 };
 
-document.addEventListener("DOMContentLoaded", function () {
-  window.navigation.addEventListener("navigate", (e) => {
-    let url = new URL(e.destination.url);
-    let pixelId = getSyncScriptParams();
-    console.log(
-      "location changed!",
-      e.target,
-      {
+document.addEventListener("click", (e) => {
+  try {
+    // console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@", inputsArray);
+    if (
+      e.target.tagName === "BUTTON" ||
+      e.target.tagName === "BUTTON" ||
+      e.target.tagName.toUpperCase() === "A" ||
+      e.target.getAttribute("onclick") ||
+      e.target.parentElement.getAttribute("onclick")
+    ) {
+      if (inputsArray.length !== 0) {
+        let allInputsEle = document.getElementsByTagName("input");
+
+        let allvalues = {};
+
+        for (let i = 0; i < allInputsEle.length; i++) {
+          if (allInputsEle[i].type === "radio") {
+            if (allInputsEle[i].checked) {
+              // console.log("*********", allInputsEle[i].checked);
+              allvalues[
+                allInputsEle[i].name
+                  ? allInputsEle[i].name
+                  : allInputsEle[i].placeholder
+                  ? allInputsEle[i].placeholder
+                  : makeid(6)
+              ] = allInputsEle[i].value ? allInputsEle[i].value : null;
+            }
+          } else {
+            allvalues[
+              allInputsEle[i].name
+                ? allInputsEle[i].name
+                : allInputsEle[i].placeholder
+                ? allInputsEle[i].placeholder
+                : makeid(6)
+            ] = allInputsEle[i].value ? allInputsEle[i].value : null;
+          }
+        }
+        // console.log("allvalues", allvalues);
+        let eventDate = new Date().valueOf();
+        console.log({
+          event: "submit",
+          date: eventDate,
+        });
+        sendAlog({
+          event: "submit",
+          date: eventDate,
+          formData: inputsArray.length !== 0 ? allvalues : null,
+          pixel_id: getSyncScriptParams(),
+          visitorId: client_id,
+          session_id,
+        });
+        inputsArray = [];
+        inputOject = {};
+      }
+    }
+  } catch (error) {
+    console.log("@clickbutinputserver", error);
+  }
+});
+
+document.addEventListener("submit", (e) => {
+  try {
+    if (inputsArray.length !== 0) {
+      let allInputsEle = document.getElementsByTagName("input");
+
+      let allvalues = {};
+
+      for (let i = 0; i < allInputsEle.length; i++) {
+        if (allInputsEle[i].type === "radio") {
+          if (allInputsEle[i].checked) {
+            // console.log("*********", allInputsEle[i].checked);
+            allvalues[
+              allInputsEle[i].name
+                ? allInputsEle[i].name
+                : allInputsEle[i].placeholder
+                ? allInputsEle[i].placeholder
+                : makeid(6)
+            ] = allInputsEle[i].value ? allInputsEle[i].value : null;
+          }
+        } else {
+          allvalues[
+            allInputsEle[i].name
+              ? allInputsEle[i].name
+              : allInputsEle[i].placeholder
+              ? allInputsEle[i].placeholder
+              : makeid(6)
+          ] = allInputsEle[i].value ? allInputsEle[i].value : null;
+        }
+      }
+      // console.log("allvalues", allvalues);
+      let eventDate = new Date().valueOf();
+      // console.log({
+      //   event: "submit",
+      //   date: eventDate,
+      //   allvalues,
+      // });
+      sendAlog({
+        event: "submit",
+        date: eventDate,
+        formData: inputsArray.length !== 0 ? allvalues : null,
+        pixel_id: getSyncScriptParams(),
+        visitorId: client_id,
+        session_id,
+      });
+      inputsArray = [];
+      inputOject = {};
+    }
+  } catch (error) {
+    console.log("@submitbutinputserver", error);
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function (inputsArray) {
+  //   console.log(inputsArray);
+  window.navigation &&
+    window.navigation.addEventListener("navigate", (e) => {
+      let url = new URL(e.destination.url);
+      let pixelId = getSyncScriptParams();
+      console.log(
+        "location changed!",
+        e.target,
+        {
+          event: "url changes",
+          date: new Date().valueOf(),
+          url: url.href,
+          pathname: url.pathname,
+          pixelId: pixelId,
+          allUrlParams: {
+            hash: locationAlias.hash,
+            host: locationAlias.host,
+            hostname: locationAlias.hostname,
+            url: locationAlias.href,
+            origin: locationAlias.origin,
+            pathname: locationAlias.pathname,
+            protocol: locationAlias.protocol,
+            search: locationAlias.search,
+            referrer: getReferrer(),
+          },
+        },
+        url
+      );
+
+      sendAlog({
         event: "url changes",
         date: new Date().valueOf(),
         url: url.href,
         pathname: url.pathname,
-        pixelId: pixelId,
-      },
-      url
-    );
-
-    sendAlog({
-      event: "url changes",
-      date: new Date().valueOf(),
-      url: url.href,
-      pathname: url.pathname,
-      pixel_id: getSyncScriptParams(),
-      visitorId: client_id,
-      session_id,
+        pixel_id: getSyncScriptParams(),
+        visitorId: client_id,
+        session_id,
+        urlParams: {
+          //EDIT
+          hash: locationAlias.hash,
+          host: locationAlias.host,
+          hostname: locationAlias.hostname,
+          url: locationAlias.href,
+          origin: locationAlias.origin,
+          pathname: locationAlias.pathname,
+          protocol: locationAlias.protocol,
+          search: locationAlias.search,
+          referrer: getReferrer(),
+        },
+      });
     });
-  });
 
   //scroll event
   window.addEventListener("scroll", function () {
@@ -411,7 +650,7 @@ document.addEventListener("DOMContentLoaded", function () {
         sendAlog({
           event: "clicked",
           element: "LINK",
-          link: e.target.href,
+          link: e.target.href, //need edit
           date: new Date().valueOf(),
           action: e.target.innerText ? e.target.innerText : e.target.innerHTML,
           pixel_id: getSyncScriptParams(),
@@ -471,16 +710,19 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         return;
       }
+
+      // console.log("inputsValuesArray", inputsArray);
     } catch (error) {
       console.log("click event", error);
     }
   });
 
   //form submission
-  document.addEventListener("submit", function (e) {
+  document.addEventListener("submit", function (e, inputsArray) {
     try {
       e.preventDefault(); //stop page from rerender
       let pixelId = getSyncScriptParams();
+
       if (e.target) {
         const data = new FormData(e.target);
         let formData = [...data.entries()];
@@ -525,6 +767,21 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 });
+
+let currentUrl = window.location.href;
+
+window.addEventListener("popstate", function (event) {
+  const newUrl = window.location.href;
+  if (newUrl !== currentUrl) {
+    console.log("URL changed from:", currentUrl);
+    console.log("URL changed to:", newUrl);
+    currentUrl = newUrl;
+  }
+});
+
+const boolean = (event) => {
+  console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@, custome Event called", event);
+};
 
 //url events
 
@@ -711,3 +968,29 @@ function sha1(str) {
 
   return temp.toLowerCase();
 }
+
+//boolean custom event
+
+const booleanEvent = async (eventName, data) => {
+  console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@, custome Event called", {
+    event: eventName,
+    ...data,
+    eventType: "CUSTOM_EVENT",
+    pixelId: getSyncScriptParams(),
+    visitorId: client_id,
+    session_id,
+  });
+
+  sendAlog({
+    event: eventName,
+    ...data,
+    eventType: "CUSTOM_EVENT",
+    pixelId: getSyncScriptParams(),
+    visitorId: client_id,
+    session_id,
+  });
+};
+
+window.BooleanEvent = booleanEvent;
+
+var BooleanEvent = window.BooleanEvent;
